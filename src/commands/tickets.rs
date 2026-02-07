@@ -102,13 +102,15 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
         } => {
             edit_ticket(
                 &storage,
-                id,
-                description,
-                add_ac,
-                remove_ac,
-                complete_ac,
-                incomplete_ac,
-                toggle_ac,
+                EditTicketOptions {
+                    id,
+                    description,
+                    add_ac,
+                    remove_ac,
+                    complete_ac,
+                    incomplete_ac,
+                    toggle_ac,
+                },
             )
             .await
         }
@@ -178,8 +180,7 @@ async fn create_ticket(storage: &impl Storage, title: String) -> anyhow::Result<
     Ok(())
 }
 
-async fn edit_ticket(
-    storage: &impl Storage,
+struct EditTicketOptions {
     id: String,
     description: Option<String>,
     add_ac: Option<String>,
@@ -187,7 +188,21 @@ async fn edit_ticket(
     complete_ac: Option<usize>,
     incomplete_ac: Option<usize>,
     toggle_ac: Option<usize>,
+}
+
+async fn edit_ticket(
+    storage: &impl Storage,
+    options: EditTicketOptions,
 ) -> anyhow::Result<()> {
+    let EditTicketOptions {
+        id,
+        description,
+        add_ac,
+        remove_ac,
+        complete_ac,
+        incomplete_ac,
+        toggle_ac,
+    } = options;
     let ticket_id = TicketId::from_str(&id)?;
     let mut ticket = storage.load_ticket(&ticket_id).await?;
 
