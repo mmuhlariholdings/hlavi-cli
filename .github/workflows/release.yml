@@ -8,112 +8,17 @@ on:
 permissions:
   contents: write
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  get-release:
-    name: Get Release Info
-    runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.get_release.outputs.upload_url }}
-      version: ${{ steps.get_version.outputs.version }}
-      release_id: ${{ steps.get_release.outputs.id }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Get version from tag
-        id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Get existing release
-        id: get_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          RELEASE_DATA=$(gh api repos/${{ github.repository }}/releases/tags/${{ github.ref_name }})
-          echo "upload_url=$(echo $RELEASE_DATA | jq -r .upload_url)" >> $GITHUB_OUTPUT
-          echo "id=$(echo $RELEASE_DATA | jq -r .id)" >> $GITHUB_OUTPUT
-
-  build-and-upload:
-    name: Build and Upload (${{ matrix.target }})
-    needs: get-release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: hlavi
-            asset_name: hlavi-$TARGET-linux-amd64.tar.gz
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            artifact_name: hlavi
-            asset_name: hlavi-$TARGET-linux-arm64.tar.gz
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: hlavi
-            asset_name: hlavi-$TARGET-darwin-amd64.tar.gz
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: hlavi
-            asset_name: hlavi-$TARGET-darwin-arm64.tar.gz
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: hlavi.exe
-            asset_name: hlavi-$TARGET-windows-amd64.zip
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
-
-      - name: Install cross-compilation tools (Linux ARM64)
-        if: matrix.target == 'aarch64-unknown-linux-gnu'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Build release binary
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Create archive (Unix)
-        if: matrix.os != 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          tar czf ${{ matrix.asset_name }} ${{ matrix.artifact_name }}
-          mv ${{ matrix.asset_name }} ../../..
-        env:
-          TARGET: ${{ needs.get-release.outputs.version }}
-
-      - name: Create archive (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          cd target/${{ matrix.target }}/release
-          7z a ${{ matrix.asset_name }} ${{ matrix.artifact_name }}
-          mv ${{ matrix.asset_name }} ../../..
-        env:
-          TARGET: ${{ needs.get-release.outputs.version }}
-
-      - name: Upload Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.get-release.outputs.upload_url }}
-          asset_path: ./${{ matrix.asset_name }}
-          asset_name: ${{ matrix.asset_name }}
-          asset_content_type: application/gzip
+  release:
+    uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-release-binary.yml@main
+    with:
+      binary-name: 'hlavi'
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}
 
   homebrew:
     name: Update Homebrew Formula
-    needs: [get-release, build-and-upload]
+    needs: release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
