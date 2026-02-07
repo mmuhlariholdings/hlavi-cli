@@ -14,10 +14,9 @@ name = "hlavi"
 path = "src/main.rs"
 
 [dependencies]
-# Core library (will use git dependency or crates.io when published)
-# For now, use path dependency for local development
-# hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core" }
-hlavi-core = { path = "../hlavi-core" }
+# Core library - using git dependency with tag for version control
+# Update the tag when a new version of hlavi-core is released
+hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", branch = "main" }
 
 # CLI framework
 clap = { version = "4.4", features = ["derive", "cargo"] }
