@@ -1,0 +1,40 @@
+[package]
+name = "hlavi-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Mmuhlari Holdings"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/mmuhlariholdings/hlavi-cli"
+homepage = "https://hlavi.com"
+description = "Command-line interface for Hlavi kanban task management"
+rust-version = "1.75"
+
+[[bin]]
+name = "hlavi"
+path = "src/main.rs"
+
+[dependencies]
+# Core library (will use git dependency or crates.io when published)
+# For now, use path dependency for local development
+# hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core" }
+hlavi-core = { path = "../hlavi-core" }
+
+# CLI framework
+clap = { version = "4.4", features = ["derive", "cargo"] }
+
+# Terminal UI
+colored = "2.1"
+dialoguer = "0.11"
+tabled = "0.15"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+
+# Configuration
+directories = "5.0"
+
+[dev-dependencies]
+tempfile = "3.8"
