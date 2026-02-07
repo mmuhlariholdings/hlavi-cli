@@ -5,6 +5,7 @@ use hlavi_core::{
     domain::ticket::{Ticket, TicketId},
     storage::Storage,
 };
+use std::str::FromStr;
 use tabled::{
     settings::{object::Columns, Alignment, Style},
     Table, Tabled,
