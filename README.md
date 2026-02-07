@@ -51,13 +51,13 @@ hlavi tickets list
 
 Edit a ticket:
 ```bash
-hlavi tickets edit TIK001 -d "Add JWT-based authentication"
-hlavi tickets edit TIK001 --ac "User can log in with email and password"
+hlavi tickets edit HLA1 -d "Add JWT-based authentication"
+hlavi tickets edit HLA1 --ac "User can log in with email and password"
 ```
 
 View ticket details:
 ```bash
-hlavi tickets show TIK001
+hlavi tickets show HLA1
 ```
 
 ## Commands

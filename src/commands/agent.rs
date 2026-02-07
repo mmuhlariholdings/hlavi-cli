@@ -7,7 +7,7 @@ pub enum AgentCommand {
 
     /// Start agent execution for a ticket
     Start {
-        /// Ticket ID (e.g., TIK001)
+        /// Ticket ID (e.g., HLA1)
         ticket_id: String,
     },
 

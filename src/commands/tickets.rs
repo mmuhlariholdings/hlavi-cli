@@ -23,7 +23,7 @@ pub enum TicketsCommand {
 
     /// Edit a ticket
     Edit {
-        /// Ticket ID (e.g., TIK001)
+        /// Ticket ID (e.g., HLA1)
         id: String,
 
         /// Set the description
@@ -41,13 +41,13 @@ pub enum TicketsCommand {
 
     /// View ticket details
     Show {
-        /// Ticket ID (e.g., TIK001)
+        /// Ticket ID (e.g., HLA1)
         id: String,
     },
 
     /// Delete a ticket
     Delete {
-        /// Ticket ID (e.g., TIK001)
+        /// Ticket ID (e.g., HLA1)
         id: String,
 
         /// Skip confirmation prompt
