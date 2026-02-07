@@ -1,0 +1,20 @@
+name: Auto Release
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  auto-release:
+    name: Auto Tag and Release
+    uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-auto-release.yml@main
+    with:
+      package-name: 'hlavi-cli'
+      binary-name: 'hlavi'
+      create-draft-release: true
+      default-bump: 'patch'
+    secrets:
+      github-token: ${{ secrets.GITHUB_TOKEN }}

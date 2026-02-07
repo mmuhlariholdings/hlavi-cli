@@ -1,18 +1,29 @@
-name: Release
+name: Create Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g., v0.1.4)'
+        required: true
+        type: string
+      create_draft_release:
+        description: 'Create draft release'
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
 
 jobs:
   release:
-    uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-release-binary.yml@main
+    name: Release from Tag
+    uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-release-from-tag.yml@main
     with:
+      tag: ${{ github.event.inputs.tag }}
       binary-name: 'hlavi'
+      create-draft-release: ${{ github.event.inputs.create_draft_release == 'true' }}
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -20,6 +31,7 @@ jobs:
     name: Update Homebrew Formula
     needs: release
     runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.create_draft_release != 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
