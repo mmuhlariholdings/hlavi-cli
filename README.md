@@ -73,7 +73,44 @@ hlavi tickets show HLA1
 
 ## Development
 
-Information on how to go about your development workflow.
+During development, use `cargo run` instead of installing the CLI every time. This is much faster and allows for quick iteration.
+
+```bash
+# Run the CLI directly (no installation needed)
+cargo run -- init
+cargo run -- tickets
+cargo run -- tickets create "Test ticket"
+cargo run -- tickets show HLA1
+```
+
+### Testing
+
+Run tests to validate your changes:
+
+```bash
+# Run all tests
+cargo test
+
+# Run tests with verbose output
+cargo test -- --nocapture
+
+# Run a specific test
+cargo test test_name
+```
+
+### When to Install
+
+Only install when you need to:
+
+1. **Test the final user experience:**
+   ```bash
+   cargo install --path .
+   hlavi tickets
+   ```
+
+2. **Validate before release** - Ensure the installed version works correctly
+
+3. **Use it for real work** - When actually using hlavi to manage tasks
 
 ## Contributing
 

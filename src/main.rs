@@ -17,9 +17,11 @@ enum Commands {
     /// Initialize a new Hlavi project in the current directory
     Init,
 
-    /// Manage tickets
-    #[command(subcommand)]
-    Tickets(commands::tickets::TicketsCommand),
+    /// Manage tickets (defaults to list if no subcommand provided)
+    Tickets {
+        #[command(subcommand)]
+        command: Option<commands::tickets::TicketsCommand>,
+    },
 
     /// Manage and view the kanban board
     #[command(subcommand)]
@@ -36,7 +38,11 @@ async fn main() {
 
     let result = match cli.command {
         Commands::Init => commands::init::execute().await,
-        Commands::Tickets(cmd) => commands::tickets::execute(cmd).await,
+        Commands::Tickets { command } => {
+            // Default to List if no subcommand is provided
+            let cmd = command.unwrap_or(commands::tickets::TicketsCommand::List);
+            commands::tickets::execute(cmd).await
+        }
         Commands::Board(cmd) => commands::board::execute(cmd).await,
         Commands::Agent(cmd) => commands::agent::execute(cmd).await,
     };
