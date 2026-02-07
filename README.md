@@ -53,6 +53,9 @@ Edit a ticket:
 ```bash
 hlavi tickets edit HLA1 -d "Add JWT-based authentication"
 hlavi tickets edit HLA1 --ac "User can log in with email and password"
+hlavi tickets edit HLA1 --complete-ac 1    # Mark acceptance criteria as complete
+hlavi tickets edit HLA1 --incomplete-ac 1  # Mark acceptance criteria as incomplete
+hlavi tickets edit HLA1 --toggle-ac 1      # Toggle acceptance criteria status
 ```
 
 View ticket details:

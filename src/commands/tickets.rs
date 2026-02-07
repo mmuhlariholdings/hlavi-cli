@@ -38,6 +38,18 @@ pub enum TicketsCommand {
         /// Remove acceptance criteria by description or index
         #[arg(long = "remove-ac")]
         remove_ac: Option<String>,
+
+        /// Mark acceptance criteria as complete by ID
+        #[arg(long = "complete-ac")]
+        complete_ac: Option<usize>,
+
+        /// Mark acceptance criteria as incomplete by ID
+        #[arg(long = "incomplete-ac")]
+        incomplete_ac: Option<usize>,
+
+        /// Toggle acceptance criteria completion status by ID
+        #[arg(long = "toggle-ac")]
+        toggle_ac: Option<usize>,
     },
 
     /// View ticket details
@@ -73,9 +85,7 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
     let storage = get_storage()?;
 
     if !storage.is_initialized().await {
-        anyhow::bail!(
-            "Project not initialized. Run 'hlavi init' first."
-        );
+        anyhow::bail!("Project not initialized. Run 'hlavi init' first.");
     }
 
     match cmd {
@@ -86,7 +96,22 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
             description,
             add_ac,
             remove_ac,
-        } => edit_ticket(&storage, id, description, add_ac, remove_ac).await,
+            complete_ac,
+            incomplete_ac,
+            toggle_ac,
+        } => {
+            edit_ticket(
+                &storage,
+                id,
+                description,
+                add_ac,
+                remove_ac,
+                complete_ac,
+                incomplete_ac,
+                toggle_ac,
+            )
+            .await
+        }
         TicketsCommand::Show { id } => show_ticket(&storage, id).await,
         TicketsCommand::Delete { id, force } => delete_ticket(&storage, id, force).await,
     }
@@ -98,7 +123,10 @@ async fn list_tickets(storage: &impl Storage) -> anyhow::Result<()> {
     if ticket_ids.is_empty() {
         println!("{}", "No tickets found.".yellow());
         println!("\nCreate a ticket with:");
-        println!("  {} hlavi tickets create \"Your ticket title\"", "$".yellow());
+        println!(
+            "  {} hlavi tickets create \"Your ticket title\"",
+            "$".yellow()
+        );
         return Ok(());
     }
 
@@ -156,6 +184,9 @@ async fn edit_ticket(
     description: Option<String>,
     add_ac: Option<String>,
     remove_ac: Option<String>,
+    complete_ac: Option<usize>,
+    incomplete_ac: Option<usize>,
+    toggle_ac: Option<usize>,
 ) -> anyhow::Result<()> {
     let ticket_id = TicketId::from_str(&id)?;
     let mut ticket = storage.load_ticket(&ticket_id).await?;
@@ -182,6 +213,72 @@ async fn edit_ticket(
         ticket.remove_acceptance_criterion(&ac_identifier)?;
         modified = true;
         println!("{} Removed acceptance criteria", "✓".green().bold());
+    }
+
+    if let Some(ac_id) = complete_ac {
+        // Find the acceptance criteria by ID
+        if let Some(ac) = ticket
+            .acceptance_criteria
+            .iter_mut()
+            .find(|ac| ac.id == ac_id)
+        {
+            ac.mark_completed();
+            modified = true;
+            println!(
+                "{} Marked acceptance criteria {} as {}",
+                "✓".green().bold(),
+                ac_id,
+                "completed".green()
+            );
+        } else {
+            anyhow::bail!("Acceptance criteria with ID {} not found", ac_id);
+        }
+    }
+
+    if let Some(ac_id) = incomplete_ac {
+        // Find the acceptance criteria by ID
+        if let Some(ac) = ticket
+            .acceptance_criteria
+            .iter_mut()
+            .find(|ac| ac.id == ac_id)
+        {
+            ac.mark_incomplete();
+            modified = true;
+            println!(
+                "{} Marked acceptance criteria {} as {}",
+                "✓".green().bold(),
+                ac_id,
+                "incomplete".yellow()
+            );
+        } else {
+            anyhow::bail!("Acceptance criteria with ID {} not found", ac_id);
+        }
+    }
+
+    if let Some(ac_id) = toggle_ac {
+        // Find the acceptance criteria by ID
+        if let Some(ac) = ticket
+            .acceptance_criteria
+            .iter_mut()
+            .find(|ac| ac.id == ac_id)
+        {
+            let new_status = !ac.completed;
+            ac.toggle();
+            modified = true;
+            let status_text = if new_status {
+                "completed".green()
+            } else {
+                "incomplete".yellow()
+            };
+            println!(
+                "{} Toggled acceptance criteria {} to {}",
+                "✓".green().bold(),
+                ac_id,
+                status_text
+            );
+        } else {
+            anyhow::bail!("Acceptance criteria with ID {} not found", ac_id);
+        }
     }
 
     if !modified {
@@ -227,8 +324,14 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     }
 
     println!("\n{}:", "Metadata".bold());
-    println!("  Created: {}", ticket.created_at.format("%Y-%m-%d %H:%M:%S"));
-    println!("  Updated: {}", ticket.updated_at.format("%Y-%m-%d %H:%M:%S"));
+    println!(
+        "  Created: {}",
+        ticket.created_at.format("%Y-%m-%d %H:%M:%S")
+    );
+    println!(
+        "  Updated: {}",
+        ticket.updated_at.format("%Y-%m-%d %H:%M:%S")
+    );
 
     if let Some(reason) = &ticket.rejection_reason {
         println!("\n{}: {}", "Rejection Reason".red().bold(), reason);

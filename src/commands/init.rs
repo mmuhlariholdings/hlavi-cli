@@ -29,7 +29,10 @@ pub async fn execute() -> anyhow::Result<()> {
     println!("  {} .hlavi/board.json", "→".blue());
     println!("  {} .hlavi/tickets/", "→".blue());
     println!("\nYou can now create tickets with:");
-    println!("  {} hlavi tickets create \"Your ticket title\"", "$".yellow());
+    println!(
+        "  {} hlavi tickets create \"Your ticket title\"",
+        "$".yellow()
+    );
 
     Ok(())
 }
