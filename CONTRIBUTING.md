@@ -155,7 +155,7 @@ Once dependencies stabilize, update to specific tags:
 
 ```toml
 [dependencies]
-hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.1.9" }
+hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.1.14" }
 ```
 
 ### Benefits of This Approach
