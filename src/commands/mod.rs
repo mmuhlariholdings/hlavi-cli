@@ -2,7 +2,7 @@ pub mod agent;
 pub mod board;
 pub mod init;
 pub mod sort;
-pub mod tickets;
+pub mod tasks;
 pub mod timeline;
 
 use hlavi_core::storage::file_storage::FileStorage;

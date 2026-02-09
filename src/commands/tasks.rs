@@ -3,7 +3,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use clap::Subcommand;
 use colored::*;
 use hlavi_core::{
-    domain::ticket::{Ticket, TicketId},
+    domain::task::{Task, TaskId},
     storage::Storage,
 };
 use std::str::FromStr;
@@ -13,10 +13,10 @@ use tabled::{
 };
 
 #[derive(Subcommand)]
-pub enum TicketsCommand {
-    /// List all tickets
+pub enum TasksCommand {
+    /// List all tasks
     List {
-        /// Sort tickets by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
         #[arg(long, default_value = "id")]
         sort_by: String,
 
@@ -25,15 +25,15 @@ pub enum TicketsCommand {
         sort_order: String,
     },
 
-    /// Create a new ticket
+    /// Create a new task
     Create {
-        /// Title of the ticket
+        /// Title of the task
         title: String,
     },
 
-    /// Edit a ticket
+    /// Edit a task
     Edit {
-        /// Ticket ID (e.g., HLA1)
+        /// Task ID (e.g., HLA1)
         id: String,
 
         /// Set the title
@@ -81,18 +81,18 @@ pub enum TicketsCommand {
         toggle_ac: Option<usize>,
     },
 
-    /// View ticket details
+    /// View task details
     Show {
-        /// Ticket ID (e.g., HLA1)
+        /// Task ID (e.g., HLA1)
         id: String,
     },
 
-    /// Search tickets by title, description, or acceptance criteria
+    /// Search tasks by title, description, or acceptance criteria
     Search {
         /// Search query
         query: String,
 
-        /// Sort tickets by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
         #[arg(long, default_value = "id")]
         sort_by: String,
 
@@ -103,7 +103,7 @@ pub enum TicketsCommand {
 
     /// Delete a ticket
     Delete {
-        /// Ticket ID (e.g., HLA1)
+        /// Task ID (e.g., HLA1)
         id: String,
 
         /// Skip confirmation prompt
@@ -124,7 +124,7 @@ struct TicketRow {
     acceptance_criteria_count: String,
 }
 
-pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
+pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
     let storage = get_storage()?;
 
     if !storage.is_initialized().await {
@@ -132,12 +132,12 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
     }
 
     match cmd {
-        TicketsCommand::List {
+        TasksCommand::List {
             sort_by,
             sort_order,
-        } => list_tickets(&storage, sort_by, sort_order).await,
-        TicketsCommand::Create { title } => create_ticket(&storage, title).await,
-        TicketsCommand::Edit {
+        } => list_tasks(&storage, sort_by, sort_order).await,
+        TasksCommand::Create { title } => create_task(&storage, title).await,
+        TasksCommand::Edit {
             id,
             title,
             description,
@@ -170,38 +170,38 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
             )
             .await
         }
-        TicketsCommand::Show { id } => show_ticket(&storage, id).await,
-        TicketsCommand::Search {
+        TasksCommand::Show { id } => show_ticket(&storage, id).await,
+        TasksCommand::Search {
             query,
             sort_by,
             sort_order,
-        } => search_tickets(&storage, query, sort_by, sort_order).await,
-        TicketsCommand::Delete { id, force } => delete_ticket(&storage, id, force).await,
+        } => search_tasks(&storage, query, sort_by, sort_order).await,
+        TasksCommand::Delete { id, force } => delete_task(&storage, id, force).await,
     }
 }
 
-async fn list_tickets(
+async fn list_tasks(
     storage: &impl Storage,
     sort_by: String,
     sort_order: String,
 ) -> anyhow::Result<()> {
-    let ticket_ids = storage.list_ticket_ids().await?;
+    let ticket_ids = storage.list_task_ids().await?;
 
     if ticket_ids.is_empty() {
-        println!("{}", "No tickets found.".yellow());
+        println!("{}", "No tasks found.".yellow());
         println!("\nCreate a ticket with:");
         println!(
-            "  {} hlavi tickets create \"Your ticket title\"",
+            "  {} hlavi tasks create \"Your ticket title\"",
             "$".yellow()
         );
         return Ok(());
     }
 
-    // Load all tickets
-    let mut tickets = Vec::new();
+    // Load all tasks
+    let mut tasks = Vec::new();
     for id in ticket_ids {
-        let ticket = storage.load_ticket(&id).await?;
-        tickets.push(ticket);
+        let task = storage.load_task(&id).await?;
+        tasks.push(task);
     }
 
     // Parse and apply sorting
@@ -213,23 +213,23 @@ async fn list_tickets(
         .parse::<crate::commands::sort::SortOrder>()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-    crate::commands::sort::sort_tickets(&mut tickets, field, order);
+    crate::commands::sort::sort_tasks(&mut tasks, field, order);
 
-    // Build rows from sorted tickets
+    // Build rows from sorted tasks
     let mut rows = Vec::new();
-    for ticket in tickets {
+    for task in tasks {
         rows.push(TicketRow {
-            id: ticket.id.to_string(),
-            title: ticket.title.clone(),
-            status: ticket.status.to_string(),
+            id: task.id.to_string(),
+            title: task.title.clone(),
+            status: task.status.to_string(),
             acceptance_criteria_count: format!(
                 "{}/{}",
-                ticket
+                task
                     .acceptance_criteria
                     .iter()
                     .filter(|ac| ac.completed)
                     .count(),
-                ticket.acceptance_criteria.len()
+                task.acceptance_criteria.len()
             ),
         });
     }
@@ -244,20 +244,20 @@ async fn list_tickets(
     Ok(())
 }
 
-async fn create_ticket(storage: &impl Storage, title: String) -> anyhow::Result<()> {
+async fn create_task(storage: &impl Storage, title: String) -> anyhow::Result<()> {
     let mut board = storage.load_board().await?;
-    let ticket_id = board.next_ticket_id();
+    let task_id = board.next_task_id();
 
-    let ticket = Ticket::new(ticket_id.clone(), title);
+    let task = Task::new(task_id.clone(), title);
 
-    storage.save_ticket(&ticket).await?;
-    board.add_ticket(ticket_id.clone());
+    storage.save_task(&task).await?;
+    board.add_task(task_id.clone());
     storage.save_board(&board).await?;
 
     println!(
-        "{} Created ticket {}",
+        "{} Created task {}",
         "✓".green().bold(),
-        ticket_id.to_string().cyan().bold()
+        task_id.to_string().cyan().bold()
     );
 
     Ok(())
@@ -293,13 +293,13 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         incomplete_ac,
         toggle_ac,
     } = options;
-    let ticket_id = TicketId::from_str(&id)?;
-    let mut ticket = storage.load_ticket(&ticket_id).await?;
+    let ticket_id = TaskId::from_str(&id)?;
+    let mut task = storage.load_task(&ticket_id).await?;
 
     let mut modified = false;
 
     if let Some(new_title) = title {
-        ticket.set_title(new_title.clone());
+        task.set_title(new_title.clone());
         modified = true;
         println!(
             "{} Updated title to {}",
@@ -309,14 +309,14 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
     }
 
     if let Some(desc) = description {
-        ticket.set_description(desc);
+        task.set_description(desc);
         modified = true;
         println!("{} Updated description", "✓".green().bold());
     }
 
     if let Some(date_str) = start_date {
         let date = parse_date(&date_str)?;
-        ticket.set_start_date(date)?;
+        task.set_start_date(date)?;
         modified = true;
         println!(
             "{} Set start date to {}",
@@ -327,7 +327,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
 
     if let Some(date_str) = end_date {
         let date = parse_date(&date_str)?;
-        ticket.set_end_date(date)?;
+        task.set_end_date(date)?;
         modified = true;
         println!(
             "{} Set end date to {}",
@@ -337,19 +337,19 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
     }
 
     if clear_start_date {
-        ticket.clear_start_date();
+        task.clear_start_date();
         modified = true;
         println!("{} Cleared start date", "✓".green().bold());
     }
 
     if clear_end_date {
-        ticket.clear_end_date();
+        task.clear_end_date();
         modified = true;
         println!("{} Cleared end date", "✓".green().bold());
     }
 
     if let Some(ac) = add_ac {
-        ticket.add_acceptance_criterion(ac.clone());
+        task.add_acceptance_criterion(ac.clone());
         modified = true;
         println!(
             "{} Added acceptance criteria: {}",
@@ -359,14 +359,14 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
     }
 
     if let Some(ac_identifier) = remove_ac {
-        ticket.remove_acceptance_criterion(&ac_identifier)?;
+        task.remove_acceptance_criterion(&ac_identifier)?;
         modified = true;
         println!("{} Removed acceptance criteria", "✓".green().bold());
     }
 
     if let Some(ac_id) = complete_ac {
         // Find the acceptance criteria by ID
-        if let Some(ac) = ticket
+        if let Some(ac) = task
             .acceptance_criteria
             .iter_mut()
             .find(|ac| ac.id == ac_id)
@@ -386,7 +386,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
 
     if let Some(ac_id) = incomplete_ac {
         // Find the acceptance criteria by ID
-        if let Some(ac) = ticket
+        if let Some(ac) = task
             .acceptance_criteria
             .iter_mut()
             .find(|ac| ac.id == ac_id)
@@ -406,7 +406,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
 
     if let Some(ac_id) = toggle_ac {
         // Find the acceptance criteria by ID
-        if let Some(ac) = ticket
+        if let Some(ac) = task
             .acceptance_criteria
             .iter_mut()
             .find(|ac| ac.id == ac_id)
@@ -435,7 +435,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         return Ok(());
     }
 
-    storage.save_ticket(&ticket).await?;
+    storage.save_task(&task).await?;
 
     println!(
         "{} Updated ticket {}",
@@ -447,22 +447,22 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
 }
 
 async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
-    let ticket_id = TicketId::from_str(&id)?;
-    let ticket = storage.load_ticket(&ticket_id).await?;
+    let ticket_id = TaskId::from_str(&id)?;
+    let task = storage.load_task(&ticket_id).await?;
 
-    println!("\n{}", format!("Ticket {}", ticket.id).cyan().bold());
+    println!("\n{}", format!("Ticket {}", task.id).cyan().bold());
     println!("{}", "─".repeat(50));
-    println!("{}: {}", "Title".bold(), ticket.title);
-    println!("{}: {}", "Status".bold(), ticket.status);
+    println!("{}: {}", "Title".bold(), task.title);
+    println!("{}: {}", "Status".bold(), task.status);
 
-    if let Some(desc) = &ticket.description {
+    if let Some(desc) = &task.description {
         println!("\n{}:", "Description".bold());
         println!("{}", desc);
     }
 
-    if !ticket.acceptance_criteria.is_empty() {
+    if !task.acceptance_criteria.is_empty() {
         println!("\n{}:", "Acceptance Criteria".bold());
-        for ac in &ticket.acceptance_criteria {
+        for ac in &task.acceptance_criteria {
             let status = if ac.completed {
                 "✓".green().to_string()
             } else {
@@ -475,25 +475,25 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     println!("\n{}:", "Metadata".bold());
     println!(
         "  Created: {}",
-        ticket.created_at.format("%Y-%m-%d %H:%M:%S")
+        task.created_at.format("%Y-%m-%d %H:%M:%S")
     );
     println!(
         "  Updated: {}",
-        ticket.updated_at.format("%Y-%m-%d %H:%M:%S")
+        task.updated_at.format("%Y-%m-%d %H:%M:%S")
     );
 
-    if let Some(start) = ticket.start_date {
+    if let Some(start) = task.start_date {
         println!(
             "  Start Date: {}",
             start.format("%Y-%m-%d").to_string().cyan()
         );
     }
 
-    if let Some(end) = ticket.end_date {
+    if let Some(end) = task.end_date {
         println!("  End Date: {}", end.format("%Y-%m-%d").to_string().cyan());
     }
 
-    if let Some(reason) = &ticket.rejection_reason {
+    if let Some(reason) = &task.rejection_reason {
         println!("\n{}: {}", "Rejection Reason".red().bold(), reason);
     }
 
@@ -502,15 +502,15 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn search_tickets(
+async fn search_tasks(
     storage: &impl Storage,
     query: String,
     sort_by: String,
     sort_order: String,
 ) -> anyhow::Result<()> {
-    let mut matching_tickets = storage.search_tickets(&query).await?;
+    let mut matching_tasks = storage.search_tasks(&query).await?;
 
-    if matching_tickets.is_empty() {
+    if matching_tasks.is_empty() {
         println!(
             "{} No tickets found matching \"{}\"",
             "✗".red().bold(),
@@ -528,29 +528,29 @@ async fn search_tickets(
         .parse::<crate::commands::sort::SortOrder>()
         .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-    crate::commands::sort::sort_tickets(&mut matching_tickets, field, order);
+    crate::commands::sort::sort_tasks(&mut matching_tasks, field, order);
 
     println!(
         "\n{} {} ticket(s) matching \"{}\"\n",
         "✓".green().bold(),
-        matching_tickets.len(),
+        matching_tasks.len(),
         query.yellow()
     );
 
     let mut rows = Vec::new();
-    for ticket in matching_tickets {
+    for task in matching_tasks {
         rows.push(TicketRow {
-            id: ticket.id.to_string(),
-            title: ticket.title.clone(),
-            status: ticket.status.to_string(),
+            id: task.id.to_string(),
+            title: task.title.clone(),
+            status: task.status.to_string(),
             acceptance_criteria_count: format!(
                 "{}/{}",
-                ticket
+                task
                     .acceptance_criteria
                     .iter()
                     .filter(|ac| ac.completed)
                     .count(),
-                ticket.acceptance_criteria.len()
+                task.acceptance_criteria.len()
             ),
         });
     }
@@ -583,11 +583,11 @@ fn parse_date(date_str: &str) -> anyhow::Result<DateTime<Utc>> {
     )
 }
 
-async fn delete_ticket(storage: &impl Storage, id: String, force: bool) -> anyhow::Result<()> {
-    let ticket_id = TicketId::from_str(&id)?;
+async fn delete_task(storage: &impl Storage, id: String, force: bool) -> anyhow::Result<()> {
+    let ticket_id = TaskId::from_str(&id)?;
 
     // Verify ticket exists
-    let _ticket = storage.load_ticket(&ticket_id).await?;
+    let _ticket = storage.load_task(&ticket_id).await?;
 
     if !force {
         let confirm = dialoguer::Confirm::new()
@@ -601,7 +601,7 @@ async fn delete_ticket(storage: &impl Storage, id: String, force: bool) -> anyho
         }
     }
 
-    storage.delete_ticket(&ticket_id).await?;
+    storage.delete_task(&ticket_id).await?;
 
     println!(
         "{} Deleted ticket {}",

@@ -334,8 +334,8 @@ dependencies = [
 
 [[package]]
 name = "hlavi-core"
-version = "0.1.14"
-source = "git+https://github.com/mmuhlariholdings/hlavi-core?tag=v0.1.14#f89ba6d808c540b08464d603901a58dcf44f256c"
+version = "0.1.16"
+source = "git+https://github.com/mmuhlariholdings/hlavi-core?tag=v0.1.16#e38cfc6831563558867ccd4e99c1e72d52db9006"
 dependencies = [
  "anyhow",
  "async-trait",

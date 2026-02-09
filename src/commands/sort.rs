@@ -1,12 +1,12 @@
 // Re-export core sorting types for use in CLI
 // The sorting logic and FromStr implementations are in hlavi-core
-pub use hlavi_core::{sort_tickets, SortField, SortOrder};
+pub use hlavi_core::{sort_tasks, SortField, SortOrder};
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use hlavi_core::domain::ticket::TicketId;
-    use hlavi_core::Ticket;
+    use hlavi_core::domain::task::TaskId;
+    use hlavi_core::Task;
 
     #[test]
     fn test_sort_field_parsing() {
@@ -48,17 +48,17 @@ mod tests {
 
     #[test]
     fn test_sort_integration() {
-        // Test that we can use the re-exported sort_tickets function
-        let mut tickets = vec![
-            Ticket::new(TicketId::new(3), "C".to_string()),
-            Ticket::new(TicketId::new(1), "A".to_string()),
-            Ticket::new(TicketId::new(2), "B".to_string()),
+        // Test that we can use the re-exported sort_tasks function
+        let mut tasks = vec![
+            Task::new(TaskId::new(3), "C".to_string()),
+            Task::new(TaskId::new(1), "A".to_string()),
+            Task::new(TaskId::new(2), "B".to_string()),
         ];
 
-        sort_tickets(&mut tickets, SortField::Id, SortOrder::Ascending);
+        sort_tasks(&mut tasks, SortField::Id, SortOrder::Ascending);
 
-        assert_eq!(tickets[0].id.as_str(), "HLA1");
-        assert_eq!(tickets[1].id.as_str(), "HLA2");
-        assert_eq!(tickets[2].id.as_str(), "HLA3");
+        assert_eq!(tasks[0].id.as_str(), "HLA1");
+        assert_eq!(tasks[1].id.as_str(), "HLA2");
+        assert_eq!(tasks[2].id.as_str(), "HLA3");
     }
 }

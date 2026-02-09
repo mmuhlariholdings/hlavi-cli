@@ -39,38 +39,38 @@ Initialize a project:
 hlavi init
 ```
 
-Create a ticket:
+Create a task:
 ```bash
-hlavi tickets create "Implement user authentication"
+hlavi tasks create "Implement user authentication"
 ```
 
-List tickets:
+List tasks:
 ```bash
-hlavi tickets list
+hlavi tasks list
 ```
 
-Edit a ticket:
+Edit a task:
 ```bash
-hlavi tickets edit HLA1 -d "Add JWT-based authentication"
-hlavi tickets edit HLA1 --ac "User can log in with email and password"
-hlavi tickets edit HLA1 --complete-ac 1    # Mark acceptance criteria as complete
-hlavi tickets edit HLA1 --incomplete-ac 1  # Mark acceptance criteria as incomplete
-hlavi tickets edit HLA1 --toggle-ac 1      # Toggle acceptance criteria status
+hlavi tasks edit HLA1 -d "Add JWT-based authentication"
+hlavi tasks edit HLA1 --ac "User can log in with email and password"
+hlavi tasks edit HLA1 --complete-ac 1    # Mark acceptance criteria as complete
+hlavi tasks edit HLA1 --incomplete-ac 1  # Mark acceptance criteria as incomplete
+hlavi tasks edit HLA1 --toggle-ac 1      # Toggle acceptance criteria status
 ```
 
-View ticket details:
+View task details:
 ```bash
-hlavi tickets show HLA1
+hlavi tasks show HLA1
 ```
 
 ## Commands
 
 - `hlavi init` - Initialize a Hlavi project
-- `hlavi tickets list` - List all tickets
-- `hlavi tickets create <title>` - Create a new ticket
-- `hlavi tickets edit <id>` - Edit a ticket
-- `hlavi tickets show <id>` - Show ticket details
-- `hlavi tickets delete <id>` - Delete a ticket
+- `hlavi tasks list` - List all tasks
+- `hlavi tasks create <title>` - Create a new task
+- `hlavi tasks edit <id>` - Edit a task
+- `hlavi tasks show <id>` - Show task details
+- `hlavi tasks delete <id>` - Delete a task
 - `hlavi board show` - View the kanban board (coming soon)
 - `hlavi agent configure` - Configure AI agent (coming soon)
 
@@ -81,9 +81,9 @@ During development, use `cargo run` instead of installing the CLI every time. Th
 ```bash
 # Run the CLI directly (no installation needed)
 cargo run -- init
-cargo run -- tickets
-cargo run -- tickets create "Test ticket"
-cargo run -- tickets show HLA1
+cargo run -- tasks
+cargo run -- tasks create "Test task"
+cargo run -- tasks show HLA1
 ```
 
 ### Testing
@@ -108,7 +108,7 @@ Only install when you need to:
 1. **Test the final user experience:**
    ```bash
    cargo install --path .
-   hlavi tickets
+   hlavi tasks
    ```
 
 2. **Validate before release** - Ensure the installed version works correctly

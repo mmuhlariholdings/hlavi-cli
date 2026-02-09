@@ -18,31 +18,31 @@ async fn show_timeline(
     sort_by: Option<String>,
     sort_order: Option<String>,
 ) -> anyhow::Result<()> {
-    let ticket_ids = storage.list_ticket_ids().await?;
+    let task_ids = storage.list_task_ids().await?;
 
-    if ticket_ids.is_empty() {
-        println!("{}", "No tickets found.".yellow());
+    if task_ids.is_empty() {
+        println!("{}", "No tasks found.".yellow());
         return Ok(());
     }
 
     // Load all tickets and filter those with dates
-    let mut tickets_with_dates = Vec::new();
-    let mut tickets_without_dates = Vec::new();
+    let mut tasks_with_dates = Vec::new();
+    let mut tasks_without_dates = Vec::new();
 
-    for id in ticket_ids {
-        let ticket = storage.load_ticket(&id).await?;
-        if ticket.start_date.is_some() || ticket.end_date.is_some() {
-            tickets_with_dates.push(ticket);
+    for id in task_ids {
+        let task = storage.load_task(&id).await?;
+        if task.start_date.is_some() || task.end_date.is_some() {
+            tasks_with_dates.push(task);
         } else {
-            tickets_without_dates.push(ticket);
+            tasks_without_dates.push(task);
         }
     }
 
-    if tickets_with_dates.is_empty() {
-        println!("{}", "No tickets with dates found.".yellow());
-        println!("\nAdd dates to tickets with:");
+    if tasks_with_dates.is_empty() {
+        println!("{}", "No tasks with dates found.".yellow());
+        println!("\nAdd dates to tasks with:");
         println!(
-            "  {} hlavi tickets edit <ID> --start-date YYYY-MM-DD --end-date YYYY-MM-DD",
+            "  {} hlavi tasks edit <ID> --start-date YYYY-MM-DD --end-date YYYY-MM-DD",
             "$".yellow()
         );
         return Ok(());
@@ -52,8 +52,8 @@ async fn show_timeline(
     let mut min_date: Option<DateTime<Utc>> = None;
     let mut max_date: Option<DateTime<Utc>> = None;
 
-    for ticket in &tickets_with_dates {
-        if let Some(start) = ticket.start_date {
+    for task in &tasks_with_dates {
+        if let Some(start) = task.start_date {
             min_date = Some(match min_date {
                 None => start,
                 Some(current) => {
@@ -65,7 +65,7 @@ async fn show_timeline(
                 }
             });
         }
-        if let Some(end) = ticket.end_date {
+        if let Some(end) = task.end_date {
             max_date = Some(match max_date {
                 None => end,
                 Some(current) => {
@@ -81,8 +81,8 @@ async fn show_timeline(
 
     // Use start dates as fallback for max, and end dates as fallback for min
     if min_date.is_none() {
-        for ticket in &tickets_with_dates {
-            if let Some(end) = ticket.end_date {
+        for task in &tasks_with_dates {
+            if let Some(end) = task.end_date {
                 min_date = Some(match min_date {
                     None => end,
                     Some(current) => {
@@ -98,8 +98,8 @@ async fn show_timeline(
     }
 
     if max_date.is_none() {
-        for ticket in &tickets_with_dates {
-            if let Some(start) = ticket.start_date {
+        for task in &tasks_with_dates {
+            if let Some(start) = task.start_date {
                 max_date = Some(match max_date {
                     None => start,
                     Some(current) => {
@@ -133,10 +133,10 @@ async fn show_timeline(
             .parse::<crate::commands::sort::SortOrder>()
             .map_err(|e| anyhow::anyhow!("{}", e))?;
 
-        crate::commands::sort::sort_tickets(&mut tickets_with_dates, field, order);
+        crate::commands::sort::sort_tasks(&mut tasks_with_dates, field, order);
     } else {
         // Default: sort by start date
-        tickets_with_dates.sort_by(|a, b| {
+        tasks_with_dates.sort_by(|a, b| {
             let a_start = a.start_date.unwrap_or(a.end_date.unwrap_or(timeline_start));
             let b_start = b.start_date.unwrap_or(b.end_date.unwrap_or(timeline_start));
             a_start.cmp(&b_start)
@@ -172,17 +172,17 @@ async fn show_timeline(
     println!("{}", "─".repeat(timeline_width));
 
     // Print tickets
-    for ticket in &tickets_with_dates {
-        let ticket_start = ticket.start_date.unwrap_or(timeline_start);
-        let ticket_end = ticket.end_date.unwrap_or(ticket_start);
+    for task in &tasks_with_dates {
+        let task_start = task.start_date.unwrap_or(timeline_start);
+        let task_end = task.end_date.unwrap_or(task_start);
 
         // Calculate position and length
-        let days_from_start = (ticket_start - timeline_start).num_days();
-        let ticket_duration = (ticket_end - ticket_start).num_days().max(1);
+        let days_from_start = (task_start - timeline_start).num_days();
+        let task_duration = (task_end - task_start).num_days().max(1);
 
         let bar_start =
             ((days_from_start as f64 / total_days as f64) * timeline_width as f64) as usize;
-        let bar_length = ((ticket_duration as f64 / total_days as f64) * timeline_width as f64)
+        let bar_length = ((task_duration as f64 / total_days as f64) * timeline_width as f64)
             .max(1.0) as usize;
 
         // Ensure bar fits within timeline
@@ -190,7 +190,7 @@ async fn show_timeline(
         let bar_length = bar_length.min(timeline_width - bar_start);
 
         // Print ticket ID
-        print!("{:8} ", ticket.id.to_string().cyan().bold());
+        print!("{:8} ", task.id.to_string().cyan().bold());
 
         // Print timeline bar
         for i in 0..timeline_width {
@@ -209,10 +209,10 @@ async fn show_timeline(
 
         // Print title (truncated)
         let max_title_len = 30;
-        let title = if ticket.title.len() > max_title_len {
-            format!("{}...", &ticket.title[..max_title_len - 3])
+        let title = if task.title.len() > max_title_len {
+            format!("{}...", &task.title[..max_title_len - 3])
         } else {
-            ticket.title.clone()
+            task.title.clone()
         };
         println!(" {}", title);
     }
@@ -228,11 +228,11 @@ async fn show_timeline(
     println!("  {} End date", "┫".green());
 
     // Show tickets without dates
-    if !tickets_without_dates.is_empty() {
+    if !tasks_without_dates.is_empty() {
         println!();
-        println!("{}", "Tickets without dates:".yellow());
-        for ticket in &tickets_without_dates {
-            println!("  {} - {}", ticket.id.to_string().cyan(), ticket.title);
+        println!("{}", "Tasks without dates:".yellow());
+        for task in &tasks_without_dates {
+            println!("  {} - {}", task.id.to_string().cyan(), task.title);
         }
     }
 

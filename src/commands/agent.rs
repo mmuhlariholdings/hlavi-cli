@@ -5,10 +5,10 @@ pub enum AgentCommand {
     /// Configure agent settings
     Configure,
 
-    /// Start agent execution for a ticket
+    /// Start agent execution for a task
     Start {
         /// Ticket ID (e.g., HLA1)
-        ticket_id: String,
+        task_id: String,
     },
 
     /// Stop agent execution
@@ -24,8 +24,8 @@ pub async fn execute(cmd: AgentCommand) -> anyhow::Result<()> {
             println!("Agent configuration - Coming soon!");
             Ok(())
         }
-        AgentCommand::Start { ticket_id } => {
-            println!("Starting agent for ticket {} - Coming soon!", ticket_id);
+        AgentCommand::Start { task_id } => {
+            println!("Starting agent for task {} - Coming soon!", task_id);
             Ok(())
         }
         AgentCommand::Stop => {

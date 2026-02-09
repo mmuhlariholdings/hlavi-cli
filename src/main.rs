@@ -17,10 +17,10 @@ enum Commands {
     /// Initialize a new Hlavi project in the current directory
     Init,
 
-    /// Manage tickets (defaults to list if no subcommand provided)
-    Tickets {
+    /// Manage tasks (defaults to list if no subcommand provided)
+    Tasks {
         #[command(subcommand)]
-        command: Option<commands::tickets::TicketsCommand>,
+        command: Option<commands::tasks::TasksCommand>,
     },
 
     /// Manage and view the kanban board
@@ -31,9 +31,9 @@ enum Commands {
     #[command(subcommand)]
     Agent(commands::agent::AgentCommand),
 
-    /// View tickets in a timeline view
+    /// View tasks in a timeline view
     Timeline {
-        /// Sort tickets by field (id, title, status, created, updated, start, end)
+        /// Sort tasks by field (id, title, status, created, updated, start, end)
         #[arg(long)]
         sort_by: Option<String>,
 
@@ -49,13 +49,13 @@ async fn main() {
 
     let result = match cli.command {
         Commands::Init => commands::init::execute().await,
-        Commands::Tickets { command } => {
+        Commands::Tasks { command } => {
             // Default to List if no subcommand is provided
-            let cmd = command.unwrap_or(commands::tickets::TicketsCommand::List {
+            let cmd = command.unwrap_or(commands::tasks::TasksCommand::List {
                 sort_by: "id".to_string(),
                 sort_order: "asc".to_string(),
             });
-            commands::tickets::execute(cmd).await
+            commands::tasks::execute(cmd).await
         }
         Commands::Board(cmd) => commands::board::execute(cmd).await,
         Commands::Agent(cmd) => commands::agent::execute(cmd).await,
