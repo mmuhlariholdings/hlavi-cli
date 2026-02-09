@@ -52,13 +52,25 @@ async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
         if let Some(start) = ticket.start_date {
             min_date = Some(match min_date {
                 None => start,
-                Some(current) => if start < current { start } else { current },
+                Some(current) => {
+                    if start < current {
+                        start
+                    } else {
+                        current
+                    }
+                }
             });
         }
         if let Some(end) = ticket.end_date {
             max_date = Some(match max_date {
                 None => end,
-                Some(current) => if end > current { end } else { current },
+                Some(current) => {
+                    if end > current {
+                        end
+                    } else {
+                        current
+                    }
+                }
             });
         }
     }
@@ -69,7 +81,13 @@ async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
             if let Some(end) = ticket.end_date {
                 min_date = Some(match min_date {
                     None => end,
-                    Some(current) => if end < current { end } else { current },
+                    Some(current) => {
+                        if end < current {
+                            end
+                        } else {
+                            current
+                        }
+                    }
                 });
             }
         }
@@ -80,7 +98,13 @@ async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
             if let Some(start) = ticket.start_date {
                 max_date = Some(match max_date {
                     None => start,
-                    Some(current) => if start > current { start } else { current },
+                    Some(current) => {
+                        if start > current {
+                            start
+                        } else {
+                            current
+                        }
+                    }
                 });
             }
         }
@@ -137,8 +161,10 @@ async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
         let days_from_start = (ticket_start - timeline_start).num_days();
         let ticket_duration = (ticket_end - ticket_start).num_days().max(1);
 
-        let bar_start = ((days_from_start as f64 / total_days as f64) * timeline_width as f64) as usize;
-        let bar_length = ((ticket_duration as f64 / total_days as f64) * timeline_width as f64).max(1.0) as usize;
+        let bar_start =
+            ((days_from_start as f64 / total_days as f64) * timeline_width as f64) as usize;
+        let bar_length = ((ticket_duration as f64 / total_days as f64) * timeline_width as f64)
+            .max(1.0) as usize;
 
         // Ensure bar fits within timeline
         let bar_start = bar_start.min(timeline_width - 1);
