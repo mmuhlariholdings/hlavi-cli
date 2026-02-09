@@ -1,6 +1,6 @@
 #!/bin/sh
 # Hlavi CLI Installer
-# Usage: curl -fsSL https://hlavi.com/install.sh | sh
+# Usage: curl -fsSL https://raw.githubusercontent.com/mmuhlariholdings/hlavi/main/hlavi-cli/install.sh | sh
 
 set -e
 
@@ -186,7 +186,7 @@ print_path_instructions() {
     echo "  hlavi init"
     echo "  hlavi tickets create \"Your first task\""
     echo ""
-    print_info "Documentation: https://docs.hlavi.com"
+    print_info "Documentation: https://github.com/mmuhlariholdings/hlavi"
 }
 
 # Main installation flow
