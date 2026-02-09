@@ -32,7 +32,15 @@ enum Commands {
     Agent(commands::agent::AgentCommand),
 
     /// View tickets in a timeline view
-    Timeline,
+    Timeline {
+        /// Sort tickets by field (id, title, status, created, updated, start, end)
+        #[arg(long)]
+        sort_by: Option<String>,
+
+        /// Sort order (asc or desc)
+        #[arg(long)]
+        sort_order: Option<String>,
+    },
 }
 
 #[tokio::main]
@@ -43,12 +51,18 @@ async fn main() {
         Commands::Init => commands::init::execute().await,
         Commands::Tickets { command } => {
             // Default to List if no subcommand is provided
-            let cmd = command.unwrap_or(commands::tickets::TicketsCommand::List);
+            let cmd = command.unwrap_or(commands::tickets::TicketsCommand::List {
+                sort_by: "id".to_string(),
+                sort_order: "asc".to_string(),
+            });
             commands::tickets::execute(cmd).await
         }
         Commands::Board(cmd) => commands::board::execute(cmd).await,
         Commands::Agent(cmd) => commands::agent::execute(cmd).await,
-        Commands::Timeline => commands::timeline::execute().await,
+        Commands::Timeline {
+            sort_by,
+            sort_order,
+        } => commands::timeline::execute(sort_by, sort_order).await,
     };
 
     if let Err(e) = result {

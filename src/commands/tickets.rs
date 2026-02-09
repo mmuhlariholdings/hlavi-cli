@@ -15,7 +15,15 @@ use tabled::{
 #[derive(Subcommand)]
 pub enum TicketsCommand {
     /// List all tickets
-    List,
+    List {
+        /// Sort tickets by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        #[arg(long, default_value = "id")]
+        sort_by: String,
+
+        /// Sort order (asc or desc)
+        #[arg(long, default_value = "asc")]
+        sort_order: String,
+    },
 
     /// Create a new ticket
     Create {
@@ -83,6 +91,14 @@ pub enum TicketsCommand {
     Search {
         /// Search query
         query: String,
+
+        /// Sort tickets by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        #[arg(long, default_value = "id")]
+        sort_by: String,
+
+        /// Sort order (asc or desc)
+        #[arg(long, default_value = "asc")]
+        sort_order: String,
     },
 
     /// Delete a ticket
@@ -116,7 +132,10 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
     }
 
     match cmd {
-        TicketsCommand::List => list_tickets(&storage).await,
+        TicketsCommand::List {
+            sort_by,
+            sort_order,
+        } => list_tickets(&storage, sort_by, sort_order).await,
         TicketsCommand::Create { title } => create_ticket(&storage, title).await,
         TicketsCommand::Edit {
             id,
@@ -152,12 +171,20 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
             .await
         }
         TicketsCommand::Show { id } => show_ticket(&storage, id).await,
-        TicketsCommand::Search { query } => search_tickets(&storage, query).await,
+        TicketsCommand::Search {
+            query,
+            sort_by,
+            sort_order,
+        } => search_tickets(&storage, query, sort_by, sort_order).await,
         TicketsCommand::Delete { id, force } => delete_ticket(&storage, id, force).await,
     }
 }
 
-async fn list_tickets(storage: &impl Storage) -> anyhow::Result<()> {
+async fn list_tickets(
+    storage: &impl Storage,
+    sort_by: String,
+    sort_order: String,
+) -> anyhow::Result<()> {
     let ticket_ids = storage.list_ticket_ids().await?;
 
     if ticket_ids.is_empty() {
@@ -170,9 +197,27 @@ async fn list_tickets(storage: &impl Storage) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let mut rows = Vec::new();
+    // Load all tickets
+    let mut tickets = Vec::new();
     for id in ticket_ids {
         let ticket = storage.load_ticket(&id).await?;
+        tickets.push(ticket);
+    }
+
+    // Parse and apply sorting
+    let field = sort_by
+        .parse::<crate::commands::sort::SortField>()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    let order = sort_order
+        .parse::<crate::commands::sort::SortOrder>()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    crate::commands::sort::sort_tickets(&mut tickets, field, order);
+
+    // Build rows from sorted tickets
+    let mut rows = Vec::new();
+    for ticket in tickets {
         rows.push(TicketRow {
             id: ticket.id.to_string(),
             title: ticket.title.clone(),
@@ -457,8 +502,13 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn search_tickets(storage: &impl Storage, query: String) -> anyhow::Result<()> {
-    let matching_tickets = storage.search_tickets(&query).await?;
+async fn search_tickets(
+    storage: &impl Storage,
+    query: String,
+    sort_by: String,
+    sort_order: String,
+) -> anyhow::Result<()> {
+    let mut matching_tickets = storage.search_tickets(&query).await?;
 
     if matching_tickets.is_empty() {
         println!(
@@ -468,6 +518,17 @@ async fn search_tickets(storage: &impl Storage, query: String) -> anyhow::Result
         );
         return Ok(());
     }
+
+    // Parse and apply sorting
+    let field = sort_by
+        .parse::<crate::commands::sort::SortField>()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    let order = sort_order
+        .parse::<crate::commands::sort::SortOrder>()
+        .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+    crate::commands::sort::sort_tickets(&mut matching_tickets, field, order);
 
     println!(
         "\n{} {} ticket(s) matching \"{}\"\n",

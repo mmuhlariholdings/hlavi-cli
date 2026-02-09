@@ -1,6 +1,7 @@
 pub mod agent;
 pub mod board;
 pub mod init;
+pub mod sort;
 pub mod tickets;
 pub mod timeline;
 
