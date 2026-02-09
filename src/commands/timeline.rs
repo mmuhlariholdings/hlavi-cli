@@ -3,17 +3,21 @@ use chrono::{DateTime, Utc};
 use colored::*;
 use hlavi_core::storage::Storage;
 
-pub async fn execute() -> anyhow::Result<()> {
+pub async fn execute(sort_by: Option<String>, sort_order: Option<String>) -> anyhow::Result<()> {
     let storage = get_storage()?;
 
     if !storage.is_initialized().await {
         anyhow::bail!("Project not initialized. Run 'hlavi init' first.");
     }
 
-    show_timeline(&storage).await
+    show_timeline(&storage, sort_by, sort_order).await
 }
 
-async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
+async fn show_timeline(
+    storage: &impl Storage,
+    sort_by: Option<String>,
+    sort_order: Option<String>,
+) -> anyhow::Result<()> {
     let ticket_ids = storage.list_ticket_ids().await?;
 
     if ticket_ids.is_empty() {
@@ -117,12 +121,27 @@ async fn show_timeline(storage: &impl Storage) -> anyhow::Result<()> {
     // Timeline width in characters
     let timeline_width = 60;
 
-    // Sort tickets by start date
-    tickets_with_dates.sort_by(|a, b| {
-        let a_start = a.start_date.unwrap_or(a.end_date.unwrap_or(timeline_start));
-        let b_start = b.start_date.unwrap_or(b.end_date.unwrap_or(timeline_start));
-        a_start.cmp(&b_start)
-    });
+    // Apply sorting
+    if let Some(sort_by_field) = sort_by {
+        // Custom sorting specified by user
+        let field = sort_by_field
+            .parse::<crate::commands::sort::SortField>()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+        let order = sort_order
+            .unwrap_or_else(|| "asc".to_string())
+            .parse::<crate::commands::sort::SortOrder>()
+            .map_err(|e| anyhow::anyhow!("{}", e))?;
+
+        crate::commands::sort::sort_tickets(&mut tickets_with_dates, field, order);
+    } else {
+        // Default: sort by start date
+        tickets_with_dates.sort_by(|a, b| {
+            let a_start = a.start_date.unwrap_or(a.end_date.unwrap_or(timeline_start));
+            let b_start = b.start_date.unwrap_or(b.end_date.unwrap_or(timeline_start));
+            a_start.cmp(&b_start)
+        });
+    }
 
     // Print header
     println!("\n{}", "Timeline View".cyan().bold());
