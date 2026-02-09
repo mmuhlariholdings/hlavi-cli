@@ -7,13 +7,19 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
+  ci:
+    name: CI
+    uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-ci.yml@main
+
   preview:
     name: Preview Build
+    needs: ci
     uses: mmuhlariholdings/hlavi-workflows/.github/workflows/rust-pr-preview.yml@main
     with:
       package-name: 'hlavi-cli'
       binary-name: 'hlavi'
     secrets:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
+      github-token: ${{ secrets.HLAVI_RELEASE_PAT }}

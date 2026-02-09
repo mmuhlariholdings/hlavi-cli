@@ -31,4 +31,4 @@ jobs:
       package-name: 'hlavi-cli'
       update-cargo-toml: ${{ github.event.inputs.update_cargo_toml == 'true' }}
     secrets:
-      github-token: ${{ secrets.GITHUB_TOKEN }}
+      github-token: ${{ secrets.HLAVI_RELEASE_PAT }}

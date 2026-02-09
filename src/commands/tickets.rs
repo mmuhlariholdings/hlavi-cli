@@ -190,10 +190,7 @@ struct EditTicketOptions {
     toggle_ac: Option<usize>,
 }
 
-async fn edit_ticket(
-    storage: &impl Storage,
-    options: EditTicketOptions,
-) -> anyhow::Result<()> {
+async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
     let EditTicketOptions {
         id,
         description,
