@@ -30,6 +30,9 @@ enum Commands {
     /// Manage AI agent configuration and execution
     #[command(subcommand)]
     Agent(commands::agent::AgentCommand),
+
+    /// View tickets in a timeline view
+    Timeline,
 }
 
 #[tokio::main]
@@ -45,6 +48,7 @@ async fn main() {
         }
         Commands::Board(cmd) => commands::board::execute(cmd).await,
         Commands::Agent(cmd) => commands::agent::execute(cmd).await,
+        Commands::Timeline => commands::timeline::execute().await,
     };
 
     if let Err(e) = result {

@@ -79,6 +79,12 @@ pub enum TicketsCommand {
         id: String,
     },
 
+    /// Search tickets by title, description, or acceptance criteria
+    Search {
+        /// Search query
+        query: String,
+    },
+
     /// Delete a ticket
     Delete {
         /// Ticket ID (e.g., HLA1)
@@ -146,6 +152,7 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
             .await
         }
         TicketsCommand::Show { id } => show_ticket(&storage, id).await,
+        TicketsCommand::Search { query } => search_tickets(&storage, query).await,
         TicketsCommand::Delete { id, force } => delete_ticket(&storage, id, force).await,
     }
 }
@@ -446,6 +453,53 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     }
 
     println!();
+
+    Ok(())
+}
+
+async fn search_tickets(storage: &impl Storage, query: String) -> anyhow::Result<()> {
+    let matching_tickets = storage.search_tickets(&query).await?;
+
+    if matching_tickets.is_empty() {
+        println!(
+            "{} No tickets found matching \"{}\"",
+            "✗".red().bold(),
+            query.yellow()
+        );
+        return Ok(());
+    }
+
+    println!(
+        "\n{} {} ticket(s) matching \"{}\"\n",
+        "✓".green().bold(),
+        matching_tickets.len(),
+        query.yellow()
+    );
+
+    let mut rows = Vec::new();
+    for ticket in matching_tickets {
+        rows.push(TicketRow {
+            id: ticket.id.to_string(),
+            title: ticket.title.clone(),
+            status: ticket.status.to_string(),
+            acceptance_criteria_count: format!(
+                "{}/{}",
+                ticket
+                    .acceptance_criteria
+                    .iter()
+                    .filter(|ac| ac.completed)
+                    .count(),
+                ticket.acceptance_criteria.len()
+            ),
+        });
+    }
+
+    let mut table = Table::new(rows);
+    table
+        .with(Style::rounded())
+        .modify(Columns::new(2..3), Alignment::left());
+
+    println!("{}", table);
 
     Ok(())
 }
