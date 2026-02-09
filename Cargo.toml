@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 # Core library - using git dependency with tag for version control
 # Update the tag when a new version of hlavi-core is released
-hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.1.11-pr.14.10f3d0a" }
+hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.1.13" }
 
 # CLI framework
 clap = { version = "4.4", features = ["derive", "cargo"] }
