@@ -321,6 +321,7 @@ name = "hlavi-cli"
 version = "0.1.1"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "colored",
  "dialoguer",
@@ -333,8 +334,8 @@ dependencies = [
 
 [[package]]
 name = "hlavi-core"
-version = "0.1.5"
-source = "git+https://github.com/mmuhlariholdings/hlavi-core?tag=v0.1.5#30e3e265093258ef0a7156437fab7fbb1f129639"
+version = "0.1.10"
+source = "git+https://github.com/mmuhlariholdings/hlavi-core?tag=v0.1.11-pr.14.10f3d0a#703205ea5bf6b3653fef37bde0c3417febf4bba9"
 dependencies = [
  "anyhow",
  "async-trait",

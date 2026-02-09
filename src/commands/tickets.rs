@@ -1,4 +1,5 @@
 use crate::commands::get_storage;
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use clap::Subcommand;
 use colored::*;
 use hlavi_core::{
@@ -27,9 +28,29 @@ pub enum TicketsCommand {
         /// Ticket ID (e.g., HLA1)
         id: String,
 
+        /// Set the title
+        #[arg(short, long)]
+        title: Option<String>,
+
         /// Set the description
         #[arg(short, long)]
         description: Option<String>,
+
+        /// Set the start date (RFC 3339 format, e.g., 2024-02-09T10:00:00Z or 2024-02-09)
+        #[arg(long)]
+        start_date: Option<String>,
+
+        /// Set the end date (RFC 3339 format, e.g., 2024-02-15T17:00:00Z or 2024-02-15)
+        #[arg(long)]
+        end_date: Option<String>,
+
+        /// Clear the start date
+        #[arg(long)]
+        clear_start_date: bool,
+
+        /// Clear the end date
+        #[arg(long)]
+        clear_end_date: bool,
 
         /// Add acceptance criteria
         #[arg(long = "ac")]
@@ -93,7 +114,12 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
         TicketsCommand::Create { title } => create_ticket(&storage, title).await,
         TicketsCommand::Edit {
             id,
+            title,
             description,
+            start_date,
+            end_date,
+            clear_start_date,
+            clear_end_date,
             add_ac,
             remove_ac,
             complete_ac,
@@ -104,7 +130,12 @@ pub async fn execute(cmd: TicketsCommand) -> anyhow::Result<()> {
                 &storage,
                 EditTicketOptions {
                     id,
+                    title,
                     description,
+                    start_date,
+                    end_date,
+                    clear_start_date,
+                    clear_end_date,
                     add_ac,
                     remove_ac,
                     complete_ac,
@@ -182,7 +213,12 @@ async fn create_ticket(storage: &impl Storage, title: String) -> anyhow::Result<
 
 struct EditTicketOptions {
     id: String,
+    title: Option<String>,
     description: Option<String>,
+    start_date: Option<String>,
+    end_date: Option<String>,
+    clear_start_date: bool,
+    clear_end_date: bool,
     add_ac: Option<String>,
     remove_ac: Option<String>,
     complete_ac: Option<usize>,
@@ -193,7 +229,12 @@ struct EditTicketOptions {
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
     let EditTicketOptions {
         id,
+        title,
         description,
+        start_date,
+        end_date,
+        clear_start_date,
+        clear_end_date,
         add_ac,
         remove_ac,
         complete_ac,
@@ -205,10 +246,54 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
 
     let mut modified = false;
 
+    if let Some(new_title) = title {
+        ticket.set_title(new_title.clone());
+        modified = true;
+        println!(
+            "{} Updated title to {}",
+            "✓".green().bold(),
+            new_title.cyan()
+        );
+    }
+
     if let Some(desc) = description {
         ticket.set_description(desc);
         modified = true;
         println!("{} Updated description", "✓".green().bold());
+    }
+
+    if let Some(date_str) = start_date {
+        let date = parse_date(&date_str)?;
+        ticket.set_start_date(date)?;
+        modified = true;
+        println!(
+            "{} Set start date to {}",
+            "✓".green().bold(),
+            date.format("%Y-%m-%d").to_string().cyan()
+        );
+    }
+
+    if let Some(date_str) = end_date {
+        let date = parse_date(&date_str)?;
+        ticket.set_end_date(date)?;
+        modified = true;
+        println!(
+            "{} Set end date to {}",
+            "✓".green().bold(),
+            date.format("%Y-%m-%d").to_string().cyan()
+        );
+    }
+
+    if clear_start_date {
+        ticket.clear_start_date();
+        modified = true;
+        println!("{} Cleared start date", "✓".green().bold());
+    }
+
+    if clear_end_date {
+        ticket.clear_end_date();
+        modified = true;
+        println!("{} Cleared end date", "✓".green().bold());
     }
 
     if let Some(ac) = add_ac {
@@ -345,6 +430,17 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
         ticket.updated_at.format("%Y-%m-%d %H:%M:%S")
     );
 
+    if let Some(start) = ticket.start_date {
+        println!(
+            "  Start Date: {}",
+            start.format("%Y-%m-%d").to_string().cyan()
+        );
+    }
+
+    if let Some(end) = ticket.end_date {
+        println!("  End Date: {}", end.format("%Y-%m-%d").to_string().cyan());
+    }
+
     if let Some(reason) = &ticket.rejection_reason {
         println!("\n{}: {}", "Rejection Reason".red().bold(), reason);
     }
@@ -352,6 +448,24 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     println!();
 
     Ok(())
+}
+
+/// Parse a date string in RFC 3339 format or simple YYYY-MM-DD format
+fn parse_date(date_str: &str) -> anyhow::Result<DateTime<Utc>> {
+    // Try parsing as RFC 3339 first
+    if let Ok(dt) = DateTime::parse_from_rfc3339(date_str) {
+        return Ok(dt.with_timezone(&Utc));
+    }
+
+    // Try parsing as simple date (YYYY-MM-DD) and set time to midnight UTC
+    if let Ok(naive_date) = NaiveDate::parse_from_str(date_str, "%Y-%m-%d") {
+        return Ok(Utc.from_utc_datetime(&naive_date.and_hms_opt(0, 0, 0).unwrap()));
+    }
+
+    anyhow::bail!(
+        "Invalid date format: '{}'. Use RFC 3339 format (e.g., 2024-02-09T10:00:00Z) or YYYY-MM-DD (e.g., 2024-02-09)",
+        date_str
+    )
 }
 
 async fn delete_ticket(storage: &impl Storage, id: String, force: bool) -> anyhow::Result<()> {
