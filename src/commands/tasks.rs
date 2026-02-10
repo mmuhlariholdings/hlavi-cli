@@ -224,8 +224,7 @@ async fn list_tasks(
             status: task.status.to_string(),
             acceptance_criteria_count: format!(
                 "{}/{}",
-                task
-                    .acceptance_criteria
+                task.acceptance_criteria
                     .iter()
                     .filter(|ac| ac.completed)
                     .count(),
@@ -473,14 +472,8 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     }
 
     println!("\n{}:", "Metadata".bold());
-    println!(
-        "  Created: {}",
-        task.created_at.format("%Y-%m-%d %H:%M:%S")
-    );
-    println!(
-        "  Updated: {}",
-        task.updated_at.format("%Y-%m-%d %H:%M:%S")
-    );
+    println!("  Created: {}", task.created_at.format("%Y-%m-%d %H:%M:%S"));
+    println!("  Updated: {}", task.updated_at.format("%Y-%m-%d %H:%M:%S"));
 
     if let Some(start) = task.start_date {
         println!(
@@ -545,8 +538,7 @@ async fn search_tasks(
             status: task.status.to_string(),
             acceptance_criteria_count: format!(
                 "{}/{}",
-                task
-                    .acceptance_criteria
+                task.acceptance_criteria
                     .iter()
                     .filter(|ac| ac.completed)
                     .count(),

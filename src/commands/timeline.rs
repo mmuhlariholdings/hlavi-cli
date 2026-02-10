@@ -182,8 +182,8 @@ async fn show_timeline(
 
         let bar_start =
             ((days_from_start as f64 / total_days as f64) * timeline_width as f64) as usize;
-        let bar_length = ((task_duration as f64 / total_days as f64) * timeline_width as f64)
-            .max(1.0) as usize;
+        let bar_length =
+            ((task_duration as f64 / total_days as f64) * timeline_width as f64).max(1.0) as usize;
 
         // Ensure bar fits within timeline
         let bar_start = bar_start.min(timeline_width - 1);
