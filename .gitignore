@@ -2,9 +2,6 @@
 /target/
 # Cargo.lock is committed for binary crates to ensure reproducible builds
 
-# Hlavi
-.hlavi/
-
 # IDE
 .idea/
 .vscode/
