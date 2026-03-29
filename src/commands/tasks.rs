@@ -12,6 +12,7 @@ use tabled::{
     Table, Tabled,
 };
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Subcommand)]
 pub enum TasksCommand {
     /// List all tasks
@@ -79,6 +80,14 @@ pub enum TasksCommand {
         /// Toggle acceptance criteria completion status by ID
         #[arg(long = "toggle-ac")]
         toggle_ac: Option<usize>,
+
+        /// Set the parent task ID (e.g., HLA1)
+        #[arg(long = "set-parent")]
+        set_parent: Option<String>,
+
+        /// Clear the parent task
+        #[arg(long = "clear-parent")]
+        clear_parent: bool,
 
         /// Add a task ID that is blocked by this task (e.g., HLA2)
         #[arg(long = "add-blocks")]
@@ -158,6 +167,8 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             complete_ac,
             incomplete_ac,
             toggle_ac,
+            set_parent,
+            clear_parent,
             add_blocks,
             remove_blocks,
         } => {
@@ -176,6 +187,8 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     complete_ac,
                     incomplete_ac,
                     toggle_ac,
+                    set_parent,
+                    clear_parent,
                     add_blocks,
                     remove_blocks,
                 },
@@ -287,6 +300,8 @@ struct EditTicketOptions {
     complete_ac: Option<usize>,
     incomplete_ac: Option<usize>,
     toggle_ac: Option<usize>,
+    set_parent: Option<String>,
+    clear_parent: bool,
     add_blocks: Option<String>,
     remove_blocks: Option<String>,
 }
@@ -305,6 +320,8 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         complete_ac,
         incomplete_ac,
         toggle_ac,
+        set_parent,
+        clear_parent,
         add_blocks,
         remove_blocks,
     } = options;
@@ -445,6 +462,23 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         }
     }
 
+    if let Some(parent_id_str) = set_parent {
+        let parent_id = TaskId::from_str(&parent_id_str)?;
+        task.set_parent(parent_id.clone());
+        modified = true;
+        println!(
+            "{} Set parent to {}",
+            "✓".green().bold(),
+            parent_id_str.cyan()
+        );
+    }
+
+    if clear_parent {
+        task.clear_parent();
+        modified = true;
+        println!("{} Cleared parent", "✓".green().bold());
+    }
+
     if let Some(blocks_id_str) = add_blocks {
         let blocks_id = TaskId::from_str(&blocks_id_str)?;
         task.add_block(blocks_id.clone());
@@ -524,6 +558,11 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
 
     if let Some(end) = task.end_date {
         println!("  End Date: {}", end.format("%Y-%m-%d").to_string().cyan());
+    }
+
+    if let Some(parent_id) = &task.parent {
+        println!("
+{}: {}", "Parent".bold(), parent_id.as_str().cyan());
     }
 
     if !task.blocks.is_empty() {
