@@ -79,6 +79,14 @@ pub enum TasksCommand {
         /// Toggle acceptance criteria completion status by ID
         #[arg(long = "toggle-ac")]
         toggle_ac: Option<usize>,
+
+        /// Add a task ID that is blocked by this task (e.g., HLA2)
+        #[arg(long = "add-blocks")]
+        add_blocks: Option<String>,
+
+        /// Remove a task ID from the blocks list (e.g., HLA2)
+        #[arg(long = "remove-blocks")]
+        remove_blocks: Option<String>,
     },
 
     /// View task details
@@ -150,6 +158,8 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             complete_ac,
             incomplete_ac,
             toggle_ac,
+            add_blocks,
+            remove_blocks,
         } => {
             edit_ticket(
                 &storage,
@@ -166,6 +176,8 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     complete_ac,
                     incomplete_ac,
                     toggle_ac,
+                    add_blocks,
+                    remove_blocks,
                 },
             )
             .await
@@ -275,6 +287,8 @@ struct EditTicketOptions {
     complete_ac: Option<usize>,
     incomplete_ac: Option<usize>,
     toggle_ac: Option<usize>,
+    add_blocks: Option<String>,
+    remove_blocks: Option<String>,
 }
 
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
@@ -291,6 +305,8 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         complete_ac,
         incomplete_ac,
         toggle_ac,
+        add_blocks,
+        remove_blocks,
     } = options;
     let ticket_id = TaskId::from_str(&id)?;
     let mut task = storage.load_task(&ticket_id).await?;
@@ -429,6 +445,30 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         }
     }
 
+    if let Some(blocks_id_str) = add_blocks {
+        let blocks_id = TaskId::from_str(&blocks_id_str)?;
+        task.add_block(blocks_id.clone());
+        modified = true;
+        println!(
+            "{} {} is now blocking {}",
+            "✓".green().bold(),
+            ticket_id.to_string().cyan().bold(),
+            blocks_id_str.cyan()
+        );
+    }
+
+    if let Some(blocks_id_str) = remove_blocks {
+        let blocks_id = TaskId::from_str(&blocks_id_str)?;
+        task.remove_block(&blocks_id)?;
+        modified = true;
+        println!(
+            "{} {} no longer blocks {}",
+            "✓".green().bold(),
+            ticket_id.to_string().cyan().bold(),
+            blocks_id_str.cyan()
+        );
+    }
+
     if !modified {
         println!("{}", "No changes made.".yellow());
         return Ok(());
@@ -484,6 +524,13 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
 
     if let Some(end) = task.end_date {
         println!("  End Date: {}", end.format("%Y-%m-%d").to_string().cyan());
+    }
+
+    if !task.blocks.is_empty() {
+        println!("\n{}:", "Blocks".bold());
+        for blocked_id in &task.blocks {
+            println!("  {} {}", "→".yellow(), blocked_id.to_string().cyan());
+        }
     }
 
     if let Some(reason) = &task.rejection_reason {
