@@ -96,6 +96,10 @@ pub enum TasksCommand {
         /// Remove a task ID from the blocks list (e.g., HLA2)
         #[arg(long = "remove-blocks")]
         remove_blocks: Option<String>,
+
+        /// Set the sort rank (higher = higher in board column)
+        #[arg(long)]
+        rank: Option<i64>,
     },
 
     /// View task details
@@ -171,6 +175,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             clear_parent,
             add_blocks,
             remove_blocks,
+            rank,
         } => {
             edit_ticket(
                 &storage,
@@ -191,6 +196,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     clear_parent,
                     add_blocks,
                     remove_blocks,
+                    rank,
                 },
             )
             .await
@@ -304,6 +310,7 @@ struct EditTicketOptions {
     clear_parent: bool,
     add_blocks: Option<String>,
     remove_blocks: Option<String>,
+    rank: Option<i64>,
 }
 
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
@@ -324,6 +331,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         clear_parent,
         add_blocks,
         remove_blocks,
+        rank,
     } = options;
     let ticket_id = TaskId::from_str(&id)?;
     let mut task = storage.load_task(&ticket_id).await?;
@@ -503,6 +511,16 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         );
     }
 
+    if let Some(new_rank) = rank {
+        task.set_rank(new_rank);
+        modified = true;
+        println!(
+            "{} Set rank to {}",
+            "✓".green().bold(),
+            new_rank.to_string().cyan()
+        );
+    }
+
     if !modified {
         println!("{}", "No changes made.".yellow());
         return Ok(());
@@ -574,6 +592,10 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
         for blocked_id in &task.blocks {
             println!("  {} {}", "→".yellow(), blocked_id.to_string().cyan());
         }
+    }
+
+    if task.rank != 0 {
+        println!("  Rank: {}", task.rank.to_string().cyan());
     }
 
     if let Some(reason) = &task.rejection_reason {

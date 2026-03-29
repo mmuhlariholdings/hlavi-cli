@@ -1,6 +1,6 @@
 [package]
 name = "hlavi-cli"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 authors = ["M Muhlari Holdings (Pty) Ltd"]
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 # Core library - using git dependency with tag for version control
 # Update the tag when a new version of hlavi-core is released
-hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.1.21" }
+hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.2.1" }
 
 # CLI framework
 clap = { version = "4.4", features = ["derive", "cargo"] }
