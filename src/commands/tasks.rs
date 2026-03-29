@@ -17,7 +17,7 @@ use tabled::{
 pub enum TasksCommand {
     /// List all tasks
     List {
-        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count, rank)
         #[arg(long, default_value = "id")]
         sort_by: String,
 
@@ -113,7 +113,7 @@ pub enum TasksCommand {
         /// Search query
         query: String,
 
-        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count)
+        /// Sort tasks by field (id, title, status, created, updated, start, end, ac-progress, ac-count, rank)
         #[arg(long, default_value = "id")]
         sort_by: String,
 
