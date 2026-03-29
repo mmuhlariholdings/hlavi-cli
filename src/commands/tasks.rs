@@ -530,7 +530,11 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
     }
 
     if let Some(effort_val) = effort {
-        let new_effort = if effort_val == 0 { None } else { Some(effort_val) };
+        let new_effort = if effort_val == 0 {
+            None
+        } else {
+            Some(effort_val)
+        };
         task.set_effort(new_effort);
         modified = true;
         match new_effort {
