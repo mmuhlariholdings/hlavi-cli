@@ -100,6 +100,10 @@ pub enum TasksCommand {
         /// Set the sort rank (higher = higher in board column)
         #[arg(long)]
         rank: Option<i64>,
+
+        /// Set the estimated effort (e.g. story points). Pass 0 to clear.
+        #[arg(long)]
+        effort: Option<u32>,
     },
 
     /// View task details
@@ -176,6 +180,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             add_blocks,
             remove_blocks,
             rank,
+            effort,
         } => {
             edit_ticket(
                 &storage,
@@ -197,6 +202,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     add_blocks,
                     remove_blocks,
                     rank,
+                    effort,
                 },
             )
             .await
@@ -311,6 +317,7 @@ struct EditTicketOptions {
     add_blocks: Option<String>,
     remove_blocks: Option<String>,
     rank: Option<i64>,
+    effort: Option<u32>,
 }
 
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
@@ -332,6 +339,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         add_blocks,
         remove_blocks,
         rank,
+        effort,
     } = options;
     let ticket_id = TaskId::from_str(&id)?;
     let mut task = storage.load_task(&ticket_id).await?;
@@ -521,6 +529,20 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         );
     }
 
+    if let Some(effort_val) = effort {
+        let new_effort = if effort_val == 0 { None } else { Some(effort_val) };
+        task.set_effort(new_effort);
+        modified = true;
+        match new_effort {
+            Some(v) => println!(
+                "{} Set effort to {}",
+                "✓".green().bold(),
+                v.to_string().cyan()
+            ),
+            None => println!("{} Cleared effort", "✓".green().bold()),
+        }
+    }
+
     if !modified {
         println!("{}", "No changes made.".yellow());
         return Ok(());
@@ -596,6 +618,10 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
 
     if task.rank != 0 {
         println!("  Rank: {}", task.rank.to_string().cyan());
+    }
+
+    if let Some(effort) = task.effort {
+        println!("  Effort: {}", effort.to_string().cyan());
     }
 
     if let Some(reason) = &task.rejection_reason {
