@@ -20,7 +20,7 @@ enum Commands {
     /// Manage tasks (defaults to list if no subcommand provided)
     Tasks {
         #[command(subcommand)]
-        command: Option<commands::tasks::TasksCommand>,
+        command: Option<Box<commands::tasks::TasksCommand>>,
     },
 
     /// Manage and view the kanban board
@@ -51,7 +51,7 @@ async fn main() {
         Commands::Init => commands::init::execute().await,
         Commands::Tasks { command } => {
             // Default to List if no subcommand is provided
-            let cmd = command.unwrap_or(commands::tasks::TasksCommand::List {
+            let cmd = command.map(|c| *c).unwrap_or(commands::tasks::TasksCommand::List {
                 sort_by: "id".to_string(),
                 sort_order: "asc".to_string(),
             });
