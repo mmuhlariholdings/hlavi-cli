@@ -561,8 +561,12 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
     }
 
     if let Some(parent_id) = &task.parent {
-        println!("
-{}: {}", "Parent".bold(), parent_id.as_str().cyan());
+        println!(
+            "
+{}: {}",
+            "Parent".bold(),
+            parent_id.as_str().cyan()
+        );
     }
 
     if !task.blocks.is_empty() {

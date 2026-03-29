@@ -51,10 +51,12 @@ async fn main() {
         Commands::Init => commands::init::execute().await,
         Commands::Tasks { command } => {
             // Default to List if no subcommand is provided
-            let cmd = command.map(|c| *c).unwrap_or(commands::tasks::TasksCommand::List {
-                sort_by: "id".to_string(),
-                sort_order: "asc".to_string(),
-            });
+            let cmd = command
+                .map(|c| *c)
+                .unwrap_or(commands::tasks::TasksCommand::List {
+                    sort_by: "id".to_string(),
+                    sort_order: "asc".to_string(),
+                });
             commands::tasks::execute(cmd).await
         }
         Commands::Board(cmd) => commands::board::execute(cmd).await,
