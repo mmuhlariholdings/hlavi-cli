@@ -104,6 +104,10 @@ pub enum TasksCommand {
         /// Set the estimated effort (e.g. story points). Pass 0 to clear.
         #[arg(long)]
         effort: Option<u32>,
+
+        /// Enable autonomous agent pickup when the task reaches Open status
+        #[arg(long)]
+        autonomous: Option<bool>,
     },
 
     /// View task details
@@ -181,6 +185,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             remove_blocks,
             rank,
             effort,
+            autonomous,
         } => {
             edit_ticket(
                 &storage,
@@ -203,6 +208,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     remove_blocks,
                     rank,
                     effort,
+                    autonomous,
                 },
             )
             .await
@@ -318,6 +324,7 @@ struct EditTicketOptions {
     remove_blocks: Option<String>,
     rank: Option<i64>,
     effort: Option<u32>,
+    autonomous: Option<bool>,
 }
 
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
@@ -340,6 +347,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         remove_blocks,
         rank,
         effort,
+        autonomous,
     } = options;
     let ticket_id = TaskId::from_str(&id)?;
     let mut task = storage.load_task(&ticket_id).await?;
@@ -547,6 +555,16 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         }
     }
 
+    if let Some(val) = autonomous {
+        task.set_autonomous(val);
+        modified = true;
+        if val {
+            println!("{} Autonomous mode enabled", "✓".green().bold());
+        } else {
+            println!("{} Autonomous mode disabled", "✓".green().bold());
+        }
+    }
+
     if !modified {
         println!("{}", "No changes made.".yellow());
         return Ok(());
@@ -626,6 +644,10 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
 
     if let Some(effort) = task.effort {
         println!("  Effort: {}", effort.to_string().cyan());
+    }
+
+    if task.autonomous {
+        println!("  Autonomous: {}", "enabled".green());
     }
 
     if let Some(reason) = &task.rejection_reason {
