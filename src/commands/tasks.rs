@@ -575,7 +575,11 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
     }
 
     if let Some(model_val) = model {
-        let new_model = if model_val.is_empty() { None } else { Some(model_val.clone()) };
+        let new_model = if model_val.is_empty() {
+            None
+        } else {
+            Some(model_val.clone())
+        };
         task.set_model(new_model.clone());
         modified = true;
         match new_model {
@@ -684,7 +688,11 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
                 "  {} {} {}: {}",
                 author_tag,
                 comment.author.bold(),
-                comment.created_at.format("%Y-%m-%d %H:%M").to_string().dimmed(),
+                comment
+                    .created_at
+                    .format("%Y-%m-%d %H:%M")
+                    .to_string()
+                    .dimmed(),
                 comment.body
             );
         }
