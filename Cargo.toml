@@ -14,9 +14,8 @@ name = "hlavi"
 path = "src/main.rs"
 
 [dependencies]
-# Core library - using git dependency with tag for version control
-# Update the tag when a new version of hlavi-core is released
-hlavi-core = { git = "https://github.com/mmuhlariholdings/hlavi-core", tag = "v0.6.0" }
+# Core library - using local path for development; switch back to git tag before release
+hlavi-core = { path = "../hlavi-core" }
 
 # CLI framework
 clap = { version = "4.4", features = ["derive", "cargo"] }

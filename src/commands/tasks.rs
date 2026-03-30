@@ -3,7 +3,7 @@ use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use clap::Subcommand;
 use colored::*;
 use hlavi_core::{
-    domain::task::{Task, TaskId},
+    domain::task::{CommentAuthorType, Task, TaskId},
     storage::Storage,
 };
 use std::str::FromStr;
@@ -108,6 +108,11 @@ pub enum TasksCommand {
         /// Enable autonomous agent pickup when the task reaches Open status
         #[arg(long)]
         autonomous: Option<bool>,
+
+        /// AI model to use for this task (e.g. claude-opus-4-6, gpt-4o, gemini-2.0-flash).
+        /// Overrides the board-level default. Pass an empty string to clear.
+        #[arg(long)]
+        model: Option<String>,
     },
 
     /// View task details
@@ -186,6 +191,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
             rank,
             effort,
             autonomous,
+            model,
         } => {
             edit_ticket(
                 &storage,
@@ -209,6 +215,7 @@ pub async fn execute(cmd: TasksCommand) -> anyhow::Result<()> {
                     rank,
                     effort,
                     autonomous,
+                    model,
                 },
             )
             .await
@@ -325,6 +332,7 @@ struct EditTicketOptions {
     rank: Option<i64>,
     effort: Option<u32>,
     autonomous: Option<bool>,
+    model: Option<String>,
 }
 
 async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyhow::Result<()> {
@@ -348,6 +356,7 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         rank,
         effort,
         autonomous,
+        model,
     } = options;
     let ticket_id = TaskId::from_str(&id)?;
     let mut task = storage.load_task(&ticket_id).await?;
@@ -565,6 +574,16 @@ async fn edit_ticket(storage: &impl Storage, options: EditTicketOptions) -> anyh
         }
     }
 
+    if let Some(model_val) = model {
+        let new_model = if model_val.is_empty() { None } else { Some(model_val.clone()) };
+        task.set_model(new_model.clone());
+        modified = true;
+        match new_model {
+            Some(m) => println!("{} Set model to {}", "✓".green().bold(), m.cyan()),
+            None => println!("{} Cleared model override", "✓".green().bold()),
+        }
+    }
+
     if !modified {
         println!("{}", "No changes made.".yellow());
         return Ok(());
@@ -648,6 +667,27 @@ async fn show_ticket(storage: &impl Storage, id: String) -> anyhow::Result<()> {
 
     if task.autonomous {
         println!("  Autonomous: {}", "enabled".green());
+    }
+
+    if let Some(model) = &task.model {
+        println!("  Model: {}", model.cyan());
+    }
+
+    if !task.comments.is_empty() {
+        println!("\n{}:", "Comments".bold());
+        for comment in &task.comments {
+            let author_tag = match comment.author_type {
+                CommentAuthorType::Agent => "[agent]".yellow().to_string(),
+                CommentAuthorType::User => "[user]".blue().to_string(),
+            };
+            println!(
+                "  {} {} {}: {}",
+                author_tag,
+                comment.author.bold(),
+                comment.created_at.format("%Y-%m-%d %H:%M").to_string().dimmed(),
+                comment.body
+            );
+        }
     }
 
     if let Some(reason) = &task.rejection_reason {
